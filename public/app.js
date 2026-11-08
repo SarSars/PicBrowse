@@ -166,8 +166,7 @@ function render() {
 
   if (folders.length && items.length) frag.append(el('h2', { class: 'section-label', text: 'Photos & videos' }));
   items.forEach((f, i) => {
-    // Link to the in-app viewer, never to the raw file, so nothing can hand the file to another app.
-    const a = el('a', { class: `tile ${f.type}`, href: `${browseUrl(data.path)}#view=${encodeURIComponent(f.name)}`, 'data-index': i, title: f.name });
+    const a = el('a', { class: `tile ${f.type}`, href: mediaUrl(f), 'data-index': i, title: f.name });
     const thumb = el('div', { class: 'thumb' }, `<span class="ph">${ICONS[f.type]}</span>`);
     thumb.append(thumbImg(thumbUrl(f), thumb));
     if (f.type === 'video') thumb.append(el('span', { class: 'play' }, ICONS.play));

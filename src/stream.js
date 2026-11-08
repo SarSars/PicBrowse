@@ -15,11 +15,11 @@ export async function sendFile(req, res, absPath, stat, mime, { download = false
     'Last-Modified': lastModified,
     'Cache-Control': `private, max-age=${maxAge}`,
   };
-  // "inline" asks the browser to display the file itself; "attachment" only for explicit downloads.
-  const name = path.basename(absPath);
-  const ascii = name.replace(/[^\x20-\x7e]|["\\]/g, '_');
-  headers['Content-Disposition'] = `${download ? 'attachment' : 'inline'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
-  headers['X-Content-Type-Options'] = 'nosniff';
+  if (download) {
+    const name = path.basename(absPath);
+    const ascii = name.replace(/[^\x20-\x7e]|["\\]/g, '_');
+    headers['Content-Disposition'] = `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+  }
 
   const ims = req.headers['if-modified-since'];
   if (ims && !req.headers.range && Math.floor(stat.mtimeMs / 1000) <= Math.floor(Date.parse(ims) / 1000)) {
