@@ -1,0 +1,10 @@
+{
+  "mediaRoot": "D:/Photos",
+  "port": 8080,
+  "host": "0.0.0.0",
+  "thumbCacheDir": null,
+  "thumbSize": 320,
+  "previewSize": 2560,
+  "ffmpegPath": null,
+  "ffprobePath": null
+}
