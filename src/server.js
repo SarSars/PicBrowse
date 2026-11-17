@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { browse } from './browse.js';
 import { loadConfig } from './config.js';
+import { recentFolders } from './recent.js';
 import { mediaInfo, STATIC_TYPES } from './media.js';
 import { HttpError, isInside, relFromUrlPath, resolveSafe } from './paths.js';
 import { sendFile } from './stream.js';
@@ -127,4 +128,5 @@ server.listen(cfg.port, cfg.host, () => {
   console.log(`  This PC      : http://localhost:${cfg.port}/`);
   for (const a of addrs) console.log(`  Other devices: ${a}`);
   console.log('\nPress Ctrl+C to stop.\n');
+  recentFolders(cfg).catch(() => {}); // warm the "Recently added" scan so the first visit is quick
 });

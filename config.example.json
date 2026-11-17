@@ -5,6 +5,7 @@
   "thumbCacheDir": null,
   "thumbSize": 320,
   "previewSize": 2560,
+  "recentDays": 60,
   "ffmpegPath": null,
   "ffprobePath": null
 }

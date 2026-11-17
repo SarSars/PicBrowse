@@ -137,6 +137,16 @@ function thumbImg(src, wrap) {
   return img;
 }
 
+function folderTile(f, cls, title) {
+  const a = el('a', { class: cls, href: browseUrl(f.path), 'data-nav': f.path, title });
+  const thumb = el('div', { class: 'thumb' }, `<span class="ph">${ICONS.folder}</span>`);
+  if (f.cover) thumb.append(thumbImg(thumbUrl(f.cover), thumb));
+  const n = f.counts ? f.counts.folders + f.counts.files : null;
+  thumb.append(el('span', { class: 'badge' }, `${ICONS.folder}${n != null ? n : ''}`));
+  a.append(thumb, el('div', { class: 'name', text: f.name }));
+  return a;
+}
+
 function render() {
   const { folders, files } = data;
   items = sortedFiles(files);
@@ -153,18 +163,22 @@ function render() {
 
   const frag = document.createDocumentFragment();
 
-  if (folders.length && items.length) frag.append(el('h2', { class: 'section-label', text: 'Folders' }));
-  for (const f of folders) {
-    const a = el('a', { class: 'tile folder', href: browseUrl(f.path), 'data-nav': f.path, title: f.name });
-    const thumb = el('div', { class: 'thumb' }, `<span class="ph">${ICONS.folder}</span>`);
-    if (f.cover) thumb.append(thumbImg(thumbUrl(f.cover), thumb));
-    const n = f.counts ? f.counts.folders + f.counts.files : null;
-    thumb.append(el('span', { class: 'badge' }, `${ICONS.folder}${n != null ? n : ''}`));
-    a.append(thumb, el('div', { class: 'name', text: f.name }));
+  const recent = data.recent || [];
+  const labels = recent.length > 0 || (folders.length > 0 && items.length > 0);
+
+  // Recently added folders (from any depth) are pinned above everything else on the home view.
+  if (recent.length) frag.append(el('h2', { class: 'section-label recent', text: 'Recently added' }));
+  for (const f of recent) {
+    const parent = f.path.split('/').slice(0, -1).join(' › ');
+    const a = folderTile(f, 'tile folder recent', f.path.replaceAll('/', ' › '));
+    a.append(el('div', { class: 'meta', text: `${parent ? `${parent} · ` : ''}Added ${dateFmt.format(f.added)}` }));
     frag.append(a);
   }
 
-  if (folders.length && items.length) frag.append(el('h2', { class: 'section-label', text: 'Photos & videos' }));
+  if (labels && folders.length) frag.append(el('h2', { class: 'section-label', text: 'Folders' }));
+  for (const f of folders) frag.append(folderTile(f, 'tile folder', f.name));
+
+  if (labels && items.length) frag.append(el('h2', { class: 'section-label', text: 'Photos & videos' }));
   items.forEach((f, i) => {
     const a = el('a', { class: `tile ${f.type}`, href: mediaUrl(f), 'data-index': i, title: f.name });
     const thumb = el('div', { class: 'thumb' }, `<span class="ph">${ICONS[f.type]}</span>`);

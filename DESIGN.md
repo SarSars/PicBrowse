@@ -41,6 +41,7 @@ browser on that network browse a folder tree of photos and videos.
 | `thumbCacheDir` | `%LOCALAPPDATA%\PicBrowse\cache` | Where thumbnails and previews are stored |
 | `thumbSize` | `320` | Longest edge of thumbnails, in pixels |
 | `previewSize` | `2560` | Longest edge of converted previews (HEIC/TIFF) |
+| `recentDays` | `60` | Folders created within this many days are pinned under **Recently added** on the home view. `0` turns it off |
 | `ffmpegPath` / `ffprobePath` | bundled | Override to use a different ffmpeg build |
 
 Environment variables `PICBROWSE_MEDIA_ROOT` and `PORT` override the file.
@@ -49,7 +50,7 @@ Environment variables `PICBROWSE_MEDIA_ROOT` and `PORT` override the file.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/browse?path=<rel>` | JSON: breadcrumbs, subfolders (with a cover item), media files (type, size, mtime) |
+| `GET /api/browse?path=<rel>` | JSON: breadcrumbs, subfolders (with a cover item), media files (type, size, mtime). For the root, also `recent`: recently added folders from any depth |
 | `GET /thumb/<rel>` | WebP thumbnail, generated on first request, then served from cache |
 | `GET /preview/<rel>` | Full-size JPEG for image formats browsers can't show (HEIC, TIFF) |
 | `GET /media/<rel>` | Original file, with HTTP Range support for video seeking. `?download=1` forces a download |
@@ -86,10 +87,22 @@ after resolving symlinks (`realpath`) to make sure it is still inside
 Folder listings are kept in memory and re-read when the folder's modified
 time changes, or after 60 seconds.
 
+### Recently added folders
+
+For the home view the server walks the whole folder tree (directories only,
+no per-file work) and collects folders whose **creation time** is within
+`recentDays`. Copying a folder into the library gives it a new creation time,
+so that is "when it was added" regardless of how old the photos are. A recent
+folder is not searched further (its subfolders are reached through it), and
+folders with nothing in them yet are left out. The result is cached for 60
+seconds and warmed at startup.
+
 ## Front end
 
 - URL mirrors the folder: `/browse/Holidays/2024`. Back/forward and bookmarks
   work.
+- Home view: **Recently added** folders are pinned first, newest first, each
+  showing where it lives and when it was added. They open like any folder.
 - Grid: folders first (with a cover thumbnail), then media. Natural sort
   ("IMG_2" before "IMG_10"); sort by name or date.
 - Thumbnails use native lazy loading, so only visible tiles are fetched.

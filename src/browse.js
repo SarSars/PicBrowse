@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { isHidden, mediaInfo } from './media.js';
 import { HttpError, isInside } from './paths.js';
+import { recentFolders } from './recent.js';
 
 const TTL_MS = 60_000;
 const cache = new Map(); // absDir -> { dirMtime, at, entries }
@@ -81,20 +82,35 @@ async function findCover(absDir, rel, rootReal, depth = 0) {
   return null;
 }
 
+/** A folder tile: name, relative path, item counts and a cover thumbnail. */
+async function folderItem(cfg, abs, rel, name) {
+  let counts = null;
+  try {
+    const e = await readDirCached(abs, cfg.mediaRootReal);
+    counts = { folders: e.folders.length, files: e.files.length };
+  } catch { /* unreadable folder: still list it */ }
+  return { name, path: rel, counts, cover: await findCover(abs, rel, cfg.mediaRootReal) };
+}
+
 export async function browse(cfg, safe) {
   if (!safe.stat.isDirectory()) throw new HttpError(400, 'Not a folder');
   const { folders, files } = await readDirCached(safe.abs, cfg.mediaRootReal);
 
-  const folderItems = await Promise.all(folders.map(async (f) => {
-    const abs = path.join(safe.abs, f.name);
-    const rel = joinRel(safe.rel, f.name);
-    let counts = null;
-    try {
-      const e = await readDirCached(abs, cfg.mediaRootReal);
-      counts = { folders: e.folders.length, files: e.files.length };
-    } catch { /* unreadable folder: still list it */ }
-    return { name: f.name, path: rel, counts, cover: await findCover(abs, rel, cfg.mediaRootReal) };
-  }));
+  const folderItems = await Promise.all(folders.map((f) => (
+    folderItem(cfg, path.join(safe.abs, f.name), joinRel(safe.rel, f.name), f.name)
+  )));
+
+  // Home view only: recently added folders from anywhere in the tree, pinned on top.
+  let recent;
+  if (!safe.rel) {
+    const found = await recentFolders(cfg);
+    const tiles = await Promise.all(found.map(async (r) => ({
+      ...await folderItem(cfg, path.join(cfg.mediaRootReal, ...r.path.split('/')), r.path, r.name),
+      added: r.added,
+    })));
+    // Skip folders with nothing to show yet (empty, or not readable).
+    recent = tiles.filter((t) => t.counts && t.counts.folders + t.counts.files > 0);
+  }
 
   const parts = safe.rel ? safe.rel.split('/') : [];
   const breadcrumbs = [{ name: path.basename(cfg.mediaRoot) || cfg.mediaRoot, path: '' }];
@@ -104,6 +120,7 @@ export async function browse(cfg, safe) {
     path: safe.rel,
     name: breadcrumbs[breadcrumbs.length - 1].name,
     breadcrumbs,
+    recent,
     folders: folderItems,
     files: files.map((f) => ({ ...f, path: joinRel(safe.rel, f.name) })),
   };

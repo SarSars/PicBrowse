@@ -41,6 +41,7 @@ export function loadConfig() {
     thumbCacheDir: fileConfig.thumbCacheDir || defaultCacheDir(),
     thumbSize: Number(fileConfig.thumbSize || 320),
     previewSize: Number(fileConfig.previewSize || 2560),
+    recentDays: Number(fileConfig.recentDays ?? 60),
     ffmpegPath: fileConfig.ffmpegPath || null,
     ffprobePath: fileConfig.ffprobePath || null,
     configPath,

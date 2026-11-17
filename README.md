@@ -66,6 +66,7 @@ PicBrowse has no login and is meant for your home network only.
 | Action | How |
 |---|---|
 | Open a folder | Click it. Use the path at the top to go back up |
+| See what's new | Folders added in the last 60 days are pinned under **Recently added** on the home page (change `recentDays` in `config.json`; `0` turns it off) |
 | View a photo | Click it. ← / → or swipe for previous/next, Esc or Back to close, F for fullscreen |
 | Play a video | Click it. If the browser can't play it, click **Open in video player** |
 | Download the original | ⬇ button in the viewer |
