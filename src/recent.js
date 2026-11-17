@@ -6,8 +6,9 @@ import { isInside } from './paths.js';
 const TTL_MS = 60_000;
 const MAX_DEPTH = 32;
 
-let cached = null;  // { at, list }
-let pending = null; // in-flight scan, shared by concurrent requests
+// Keyed by "<mediaRootReal>|<recentDays>" so different configs never share results.
+const cached = new Map();  // key -> { at, list }
+const pending = new Map(); // key -> in-flight scan, shared by concurrent requests
 
 /**
  * Walk the folder tree looking for folders created within the cutoff. Only
@@ -55,25 +56,30 @@ async function walk(absDir, rel, ctx, depth) {
 /**
  * Folders at any depth that were added in the last `cfg.recentDays` days,
  * newest first: [{ name, path, added }]. Cached for TTL_MS.
+ * `now` (ms) stands in for the current time; it exists for tests.
  */
-export async function recentFolders(cfg) {
+export async function recentFolders(cfg, { now = Date.now() } = {}) {
   if (!(cfg.recentDays > 0)) return [];
-  if (cached && Date.now() - cached.at < TTL_MS) return cached.list;
-  pending ??= (async () => {
-    try {
-      const ctx = {
-        rootReal: cfg.mediaRootReal,
-        cutoff: Date.now() - cfg.recentDays * 86_400_000,
-        seen: new Set(),
-        found: [],
-      };
-      await walk(cfg.mediaRootReal, '', ctx, 0);
-      ctx.found.sort((a, b) => b.added - a.added || a.path.localeCompare(b.path));
-      cached = { at: Date.now(), list: ctx.found };
-      return ctx.found;
-    } finally {
-      pending = null;
-    }
-  })();
-  return pending;
+  const key = `${cfg.mediaRootReal}|${cfg.recentDays}`;
+  const hit = cached.get(key);
+  if (hit && now >= hit.at && now - hit.at < TTL_MS) return hit.list;
+  if (!pending.has(key)) {
+    pending.set(key, (async () => {
+      try {
+        const ctx = {
+          rootReal: cfg.mediaRootReal,
+          cutoff: now - cfg.recentDays * 86_400_000,
+          seen: new Set(),
+          found: [],
+        };
+        await walk(cfg.mediaRootReal, '', ctx, 0);
+        ctx.found.sort((a, b) => b.added - a.added || a.path.localeCompare(b.path));
+        cached.set(key, { at: now, list: ctx.found });
+        return ctx.found;
+      } finally {
+        pending.delete(key);
+      }
+    })());
+  }
+  return pending.get(key);
 }

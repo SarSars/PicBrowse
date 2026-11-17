@@ -12,7 +12,9 @@ export class HttpError extends Error {
 /** True if `child` is `parent` or inside it. Case-insensitive on Windows (path.relative handles that). */
 export function isInside(parent, child) {
   const rel = path.relative(parent, child);
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  if (rel === '') return true;
+  // Only a whole ".." segment means "outside" ("..Archive" is a legitimate name).
+  return rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
 }
 
 /**

@@ -91,3 +91,17 @@ PicBrowse has no login and is meant for your home network only.
 | `Port 8080 is already in use` | Change `port` in `config.json` |
 | Video thumbnails missing, startup says `ffmpeg NOT FOUND` | Run `npm install` again, or set `ffmpegPath` in `config.json` to an installed `ffmpeg.exe` |
 | Phone can't connect | Check the firewall rule and that the network is Private; use the "Other devices" address |
+
+## Development
+
+Run the tests with:
+
+```powershell
+npm test
+```
+
+They use Node's built-in test runner (`node:test`), so there's nothing extra
+to install. Each test builds its own temporary media folder, so your real
+library and config are never touched. The HTTP tests start the server from
+`src/app.js` on a random port. `src/server.js` is only the startup script
+(config, ffmpeg check, `listen`).
